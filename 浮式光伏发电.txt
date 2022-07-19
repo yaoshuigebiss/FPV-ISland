@@ -1,0 +1,206 @@
+*AFUN,DEG
+FINISH
+/CLEAR
+/prep7
+KEYW,PR_SGVOF,0
+f=40/7                                     !网壳矢高
+span=40                                    !网壳跨径
+kn=8                                       !网壳主骨架份数
+Nx=6                                       !网壳圈数
+
+
+!=============================
+!计算节点坐标，并定义节点
+csys,2                                     !转换为球坐标系
+R=(span*span/4+f*f)/(2*f)                  !算出半径
+Dpha=Atn(span/2/Sqrt(R*R-span*span/4))/Nx  !算出每层下降所带来的角度变化
+
+
+!=============================
+!定义每个点的编号以及坐标
+k,1,r,0,90                                 !定义最上面的顶点
+*DO,i,1,Nx                                 !层数循环
+*DO,j,1,kn*i                               !每层层内循环
+      x=r                                  !点的第一个坐标
+      y=(j-1)*360/(kn*i)
+      z=90-i*Dpha
+k,1+Kn*(i-1)*i/2+j,x,y,z                   !每循环一次根据点的坐标写出一个点
+*ENDDO
+*ENDDO
+Numnode=1+kn*(Nx-1)*Nx/2+Kn*Nx
+
+
+!==============================
+!定义网架单元以及材料参数
+ET,1,beam188
+mp,ex,1,2.1e11
+mp,prxy,1,0.3
+mp,dens,1,7850
+sectype,1,beam,ctube
+secdata,0.147/2,0.152/2,8
+
+!==============================
+!定义光伏板单元材料参数
+ET,2,shell181
+r,1,10
+mp,ex,2,3.0E4
+mp,prxy,2,0.2
+mp,dens,2600E-12
+!==============================
+!环向杆连接
+*DO,i,1,Nx
+      *DO,j,1,Kn*i-1
+      L,1+kn*(i-1)*i/2+j,1+Kn*(i-1)*i/2+j+1
+*enddo
+      L,1+Kn*(i-1)*i/2+1,1+kn*(i-1)*i/2+j+1
+*enddo
+
+
+!=============================
+!径向杆连接
+*DO,i,1,Kn                                                     !第一圈径向杆连接
+      L,1,i+1
+*enddo
+
+!建立网架几何模型
+!=============================
+*DO,i,1,Nx-1                                                   !从第二圈开始圈数循环
+*DO,j,1,Kn                                                     !分为八个循环区  每个循环区区数循环
+*DO,k,1,i+1                                                    !每个区内的点数循环
+     *IF,k,EQ,i+1,THEN                                         !判断是否为当前循环区的最后一根杆
+      *IF,j,EQ,Kn,THEN                                         !判断是否为最后一个循环区
+       L,1+Kn*(i-1)*i/2+1,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k         !最后区的负向杆连法
+      *ELSE
+       L,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k !普通区最后一根杆的正向杆连法
+      *ENDIF
+     *ELSE
+     L,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k   !普通区一般正向杆连法
+     *ENDIF
+*ENDDO
+*DO,k,1,i
+     L,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1 !一般负向杆连法
+*ENDDO
+*ENDDO
+*ENDDO
+
+!===============================
+!建立光伏板几何模型
+/uis,msgpop,3
+csys,0
+*do,m,1,kn
+        *if,m,eq,kn,then
+        a,1,1+1,m+1
+        *else
+        a,1,1+m,m+2
+        *endif
+        *enddo
+*DO,i,1,Nx-1                                                   !从第二圈开始圈数循环
+*DO,j,1,Kn                                                     !分为八个循环区  每个循环区区数循环
+*DO,k,1,i+1                                                    !每个区内的点数循环
+     *IF,k,EQ,i+1,THEN                                         !判断是否为当前循环区的最后一根杆
+      *IF,j,EQ,Kn,THEN                                         !判断是否为最后一个循环区
+       a,1+Kn*(i-1)*i/2+1,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k, 1+Kn*(i+1)*i/2+1        !最后区的负向杆连法
+       a,1+Kn*(i-1)*i/2+1,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k,1+Kn*(i+1)*i/2
+      *ELSE
+       a,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1 !普通区最后一根杆的正向杆连法
+      *ENDIF
+     *ELSE
+     a,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1   !普通区一般正向杆连法
+     *ENDIF
+*ENDDO
+  
+*DO,k,1,i
+     a,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1,1+Kn*(i-1)*i/2+(j-1)*i+k+1 !一般负向杆连法
+*ENDDO
+*ENDDO
+*ENDDO
+
+!网格划分
+!===============================
+!杆单元网格划分
+latt,1,,1,,,,1
+lesize,all,,,10
+lmesh,all
+
+!===============================
+!光伏板网格划分
+aatt,2,,2,,2
+esize,1
+mshape,0
+mshkey,0
+amesh,all     
+
+!================================
+!求解
+/solu
+antype,0   
+!定义边界约束
+*DO,h,1,1+kn*(Nx-1)*Nx/2+Kn*Nx                                  !所有的点循环
+*IF,h,GT,1+kn*(Nx-1)*Nx/2,then                                  !判断是否为最外圈点
+   DK,h,all,0                                                    !约束该点
+*ENDIF
+*ENDDO
+
+!==============================
+!施加梯度风荷载
+sfgrad,pres,,z,0,-5
+asel,s,loc,x,0,20
+asel,r,loc,y,-20,20
+sfa,all,1,pres,-300
+
+!=============================
+!施加重力场
+allsel
+acel,0,0,9.8
+gplot
+
+/SOL
+SOLVE   
+FINISH 
+
+!后处理
+!=============================
+!应力云图显示
+/POST1 
+SET,LAST 
+ESLV,S   
+/EFACET,1    
+PLNSOL, S,X, 0,1.0  
+/REPLOT 
+
+/POST1 
+SET,LAST  
+/EFACET,1    
+PLNSOL, S,Y, 0,1.0  
+
+/POST1 
+SET,LAST  
+/EFACET,1    
+PLNSOL, S,Z, 0,1.0  
+
+/POST1  
+SET,LAST
+AVPRIN,0, , 
+ETABLE,FN1,SMISC, 6   
+AVPRIN,0, , 
+ETABLE,FN2,SMISC, 19
+PLLS,FN1,FN2,1,0,0 
+
+!==============================
+!位移云图显示
+/POST1
+/EFACET,1 
+PLNSOL, U,X, 0,1.0
+
+/POST1
+/EFACET,1 
+PLNSOL, U,Y, 0,1.0
+
+/POST1
+/EFACET,1 
+PLNSOL, U,Z, 0,1.0 
+
+/POST1
+/EFACET,1 
+PLNSOL, U,SUM, 0,1.0
+

@@ -1,0 +1,31 @@
+/uis,msgpop,3
+r,1,t
+csys,0
+*do,m,1,kn
+        *if,m,eq,kn,then
+        a,1,1+1,m+1
+        *else
+        a,1,1+m,m+2
+        *endif
+        *enddo
+*DO,i,1,Nx-1                                                   !从第二圈开始圈数循环
+*DO,j,1,Kn                                                     !分为八个循环区  每个循环区区数循环
+*DO,k,1,i+1                                                    !每个区内的点数循环
+     *IF,k,EQ,i+1,THEN                                         !判断是否为当前循环区的最后一根杆
+      *IF,j,EQ,Kn,THEN                                         !判断是否为最后一个循环区
+       a,1+Kn*(i-1)*i/2+1,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k, 1+Kn*(i+1)*i/2+1        !最后区的负向杆连法
+       a,1+Kn*(i-1)*i/2+1,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k,1+Kn*(i+1)*i/2
+      *ELSE
+       a,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1 !普通区最后一根杆的正向杆连法
+      *ENDIF
+     *ELSE
+     a,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1   !普通区一般正向杆连法
+     *ENDIF
+*ENDDO
+  
+*DO,k,1,i
+     a,1+Kn*(i-1)*i/2+(j-1)*i+k,1+Kn*(i+1)*i/2+(j-1)*(i+1)+k+1,1+Kn*(i-1)*i/2+(j-1)*i+k+1 !一般负向杆连法
+*ENDDO
+
+*ENDDO
+*ENDDO

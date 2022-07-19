@@ -1,0 +1,15 @@
+/solu
+antype,0   
+*DO,h,1,1+kn*(Nx-1)*Nx/2+Kn*Nx                                  
+*IF,h,GT,1+kn*(Nx-1)*Nx/2,then                                  
+   DK,h,all,0                                                   
+*ENDIF
+*ENDDO
+sfgrad,pres,,z,0,-5
+asel,s,loc,x,0,20
+asel,r,loc,y,-20,20
+sfa,all,1,pres,q
+allsel
+acel,0,0,g
+
+ 
